@@ -1,0 +1,74 @@
+<svg width="1300" height="820" viewBox="0 0 1300 820" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .title { font: bold 28px sans-serif; fill: #1A1A1A; }
+    .section-title { font: bold 20px sans-serif; fill: #1A1A1A; }
+    .label { font: 16px sans-serif; fill: #333; }
+    .box { fill: #F8F9FA; stroke: #C9CCD1; stroke-width: 2; rx: 10; }
+    .ai-box { fill: #E8F1FF; stroke: #4A90E2; stroke-width: 2; rx: 10; }
+    .hitl-box { fill: #E9FBE9; stroke: #5CB85C; stroke-width: 2; rx: 10; }
+    .arrow { stroke: #555; stroke-width: 2; marker-end: url(#arrowhead); }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+            refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555" />
+    </marker>
+  </defs>
+
+  <text x="430" y="50" class="title">Upstream AI — System Architecture</text>
+
+  <rect x="40" y="120" width="250" height="240" class="box"/>
+  <text x="75" y="155" class="section-title">Supplier Inputs</text>
+  <text x="70" y="195" class="label">• Email attachments</text>
+  <text x="70" y="225" class="label">• WhatsApp images</text>
+  <text x="70" y="255" class="label">• PDFs / Photos</text>
+  <text x="70" y="285" class="label">• Unstructured invoices</text>
+
+  <line x1="290" y1="240" x2="370" y2="240" class="arrow"/>
+
+  <rect x="370" y="120" width="250" height="240" class="box"/>
+  <text x="410" y="155" class="section-title">Upload Layer (Frontend)</text>
+  <text x="400" y="195" class="label">• Streamlit App</text>
+  <text x="400" y="225" class="label">• File uploader</text>
+  <text x="400" y="255" class="label">• Preview renderer</text>
+  <text x="400" y="285" class="label">• Base64 encoding</text>
+
+  <line x1="620" y1="240" x2="700" y2="240" class="arrow"/>
+
+  <rect x="700" y="120" width="300" height="330" class="ai-box"/>
+  <text x="740" y="155" class="section-title">AI Extraction Engine</text>
+  <text x="735" y="185" class="label">(OpenAI Multimodal Model)</text>
+
+  <text x="720" y="225" class="label">• OCR parsing</text>
+  <text x="720" y="255" class="label">• kWh extraction</text>
+  <text x="720" y="285" class="label">• Billing period</text>
+  <text x="720" y="315" class="label">• Utility provider</text>
+  <text x="720" y="345" class="label">• Country inference</text>
+  <text x="720" y="375" class="label">• Confidence scoring</text>
+  <text x="720" y="405" class="label">• Raw text snippet</text>
+
+  <line x1="850" y1="450" x2="850" y2="520" class="arrow"/>
+
+  <rect x="620" y="520" width="460" height="160" class="box"/>
+  <text x="690" y="555" class="section-title">Routing & Validation (LangGraph Logic)</text>
+
+  <text x="650" y="600" class="label">• High-confidence → JSON Output</text>
+  <text x="650" y="630" class="label">• Low-confidence → Review Queue</text>
+
+  <line x1="850" y1="680" x2="850" y2="740" class="arrow"/>
+
+  <rect x="400" y="740" width="350" height="160" class="hitl-box"/>
+  <text x="460" y="780" class="section-title">Human-in-the-Loop Review Queue</text>
+  <text x="430" y="820" class="label">• Edit / Approve / Reject</text>
+  <text x="430" y="850" class="label">• Correct extracted fields</text>
+  <text x="430" y="880" class="label">• Confidence override</text>
+
+  <rect x="800" y="740" width="350" height="160" class="box"/>
+  <text x="840" y="780" class="section-title">Audit Log & Integrations</text>
+  <text x="820" y="820" class="label">• Immutable logs</text>
+  <text x="820" y="850" class="label">• Source file storage</text>
+  <text x="820" y="880" class="label">• ERP / ESG sync</text>
+  <text x="820" y="910" class="label">• CSV / API export</text>
+
+</svg>
