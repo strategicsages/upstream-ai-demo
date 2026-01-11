@@ -12,10 +12,9 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="Upstream AI", layout="wide")
-st.title("⚡ Upstream AI — Scope 3 Invoice Extraction Agent")
+st.title("⚡ Upstream AI — Invoice Extraction (Stable Version)")
 
 
-# --- Helper Functions ----------------------------------------------------------
 def pdf_to_image(file_bytes):
     images = convert_from_bytes(file_bytes)
     buf = io.BytesIO()
@@ -24,12 +23,12 @@ def pdf_to_image(file_bytes):
     return buf
 
 def encode_image(image):
-    buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-# --- Sidebar Navigation --------------------------------------------------------
+# Sidebar
 st.sidebar.header("Navigation")
 page = st.sidebar.radio("Go to", ["Upload Invoice", "Review Queue", "Audit Log"])
 
@@ -39,10 +38,13 @@ if "audit_log" not in st.session_state:
     st.session_state.audit_log = []
 
 
-# --- PAGE 1: UPLOAD INVOICE ----------------------------------------------------
+# =======================
+# PAGE 1 — UPLOAD INVOICE
+# =======================
 if page == "Upload Invoice":
-    st.subheader("📤 Upload Supplier Invoice")
-    uploaded = st.file_uploader("Upload invoice", type=["png", "jpg", "jpeg", "pdf"])
+
+    st.subheader("📤 Upload Invoice")
+    uploaded = st.file_uploader("Upload file", type=["png", "jpg", "jpeg", "pdf"])
 
     if uploaded:
 
@@ -51,110 +53,93 @@ if page == "Upload Invoice":
         else:
             invoice_image = Image.open(uploaded)
 
-        st.image(invoice_image, width=500)
-
-        st.markdown("---")
-        st.write("### 🔍 Extracting data…")
+        st.image(invoice_image, width=450)
 
         img_b64 = encode_image(invoice_image)
 
-        # --- FIXED, VALIDATED OPENAI REQUEST ----------------------------------
-        response = client.responses.create(
-            model="gpt-4o-mini",
-            input=[
-                {
-                    "type": "message",
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": """
-Extract structured invoice data.
+        st.write("### Extracting data...")
 
-Return ONLY this JSON:
+        # ⭐ FINAL WORKING CHAT COMPLETIONS CALL ⭐
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+You are a structured invoice extraction agent.
+Extract ONLY this JSON:
 {
-  "energy_usage_kwh": number | null,
-  "billing_period": {
-    "start_date": string | null,
-    "end_date": string | null
-  },
-  "utility_provider": string | null,
-  "country": string | null,
-  "raw_text_snippet": string | null,
+  "energy_usage_kwh": number|null,
+  "billing_period": {"start_date": string|null, "end_date": string|null},
+  "utility_provider": string|null,
+  "country": string|null,
+  "raw_text_snippet": string|null,
   "confidence": number
 }
-If unsure, return null.
-""" },
+"""
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Extract fields from this invoice."},
                         {
-                            "type": "input_image",
-                            "image": img_b64
+                            "type": "image_url",
+                            "image_url": f"data:image/png;base64,{img_b64}"
                         }
                     ],
                 }
             ],
-            max_output_tokens=500
+            temperature=0
         )
 
-        extracted = json.loads(response.output_text)
-        st.json(extracted)
+        extracted_json = json.loads(response.choices[0].message["content"])
+
+        st.json(extracted_json)
 
         st.session_state.review_queue.append({
             "image": invoice_image,
-            "data": extracted
+            "data": extracted_json
         })
 
-        st.session_state.audit_log.append(
-            f"Uploaded invoice (confidence {extracted['confidence']})"
-        )
+        st.session_state.audit_log.append("Uploaded invoice")
 
-        st.success("Extraction complete! Added to Review Queue.")
+        st.success("Extraction completed!")
 
 
-# --- PAGE 2: REVIEW QUEUE -----------------------------------------------------
+# =======================
+# PAGE 2 — REVIEW QUEUE
+# =======================
 elif page == "Review Queue":
+
     st.subheader("📝 Review Queue")
 
     if len(st.session_state.review_queue) == 0:
-        st.info("No invoices pending review.")
+        st.info("Nothing pending.")
     else:
         for idx, item in enumerate(st.session_state.review_queue):
 
-            st.markdown(f"## Invoice #{idx+1}")
+            st.image(item["image"], width=300)
 
-            col1, col2 = st.columns(2)
+            editable = st.text_area(
+                "Extracted JSON",
+                value=json.dumps(item["data"], indent=2),
+                height=280
+            )
 
-            with col1:
-                st.image(item["image"], width=420)
+            if st.button(f"Approve #{idx+1}"):
+                st.success("Approved")
+                st.session_state.review_queue.pop(idx)
+                st.experimental_rerun()
 
-            with col2:
-                editable = st.text_area(
-                    "Extracted JSON:",
-                    json.dumps(item["data"], indent=2)
-                )
-
-                edited_json = json.loads(editable)
-                conf = edited_json.get("confidence", 0)
-
-                if conf >= 90:
-                    st.success(f"Confidence: {conf}")
-                elif conf >= 70:
-                    st.warning(f"Confidence: {conf}")
-                else:
-                    st.error(f"Confidence: {conf}")
-
-                if st.button(f"Approve #{idx+1}"):
-                    st.success("Synced to ERP")
-                    st.session_state.review_queue.pop(idx)
-                    st.experimental_rerun()
-
-                if st.button(f"Request Resubmission #{idx+1}"):
-                    st.error("Returned to supplier")
-                    st.session_state.review_queue.pop(idx)
-                    st.experimental_rerun()
+            if st.button(f"Reject #{idx+1}"):
+                st.error("Rejected")
+                st.session_state.review_queue.pop(idx)
+                st.experimental_rerun()
 
 
-# --- PAGE 3: AUDIT LOG --------------------------------------------------------
+# =======================
+# PAGE 3 — AUDIT LOG
+# =======================
 elif page == "Audit Log":
     st.subheader("📚 Audit Log")
-    for i, log in enumerate(st.session_state.audit_log):
-        st.write(f"{i+1}. {log}")
+    st.write(st.session_state.audit_log)
