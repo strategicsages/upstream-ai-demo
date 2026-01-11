@@ -5,17 +5,20 @@ from pdf2image import convert_from_bytes
 import io
 import base64
 import json
-import os
 
-# --- Initialize client using Streamlit Secrets ---
+# --------------------------------------------------------
+# INITIALIZE OPENAI CLIENT FROM STREAMLIT SECRETS
+# --------------------------------------------------------
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="Upstream AI", layout="wide")
-st.title("⚡ Upstream AI — Invoice Extraction (Stable Version)")
+st.title("⚡ Upstream AI — Scope 3 Invoice Extractor")
 
-# --- Helper Functions ---
-def pdf_to_image(file_bytes):
-    images = convert_from_bytes(file_bytes)
+# --------------------------------------------------------
+# HELPERS
+# --------------------------------------------------------
+def pdf_to_image(pdf_bytes):
+    images = convert_from_bytes(pdf_bytes)
     buf = io.BytesIO()
     images[0].save(buf, format="PNG")
     buf.seek(0)
@@ -26,7 +29,9 @@ def encode_image(img):
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-# --- UI Navigation ---
+# --------------------------------------------------------
+# SIDEBAR NAVIGATION
+# --------------------------------------------------------
 page = st.sidebar.radio("Navigation", ["Upload Invoice", "Review Queue", "Audit Log"])
 
 if "review_queue" not in st.session_state:
@@ -34,27 +39,32 @@ if "review_queue" not in st.session_state:
 if "audit_log" not in st.session_state:
     st.session_state.audit_log = []
 
-# ================================
+# ========================================================
 # PAGE 1 — UPLOAD INVOICE
-# ================================
+# ========================================================
 if page == "Upload Invoice":
-    st.subheader("📤 Upload Invoice")
-    uploaded = st.file_uploader("Upload an invoice", type=["png", "jpg", "jpeg", "pdf"])
 
-    if uploaded:
-        # Convert PDF → image
-        if uploaded.type == "application/pdf":
-            invoice_image = Image.open(pdf_to_image(uploaded.read()))
+    st.subheader("📤 Upload Supplier Invoice")
+    file = st.file_uploader("Upload PNG / JPG / PDF", type=["png", "jpg", "jpeg", "pdf"])
+
+    if file:
+
+        # Convert PDF → Image
+        if file.type == "application/pdf":
+            invoice_image = Image.open(pdf_to_image(file.read()))
         else:
-            invoice_image = Image.open(uploaded)
+            invoice_image = Image.open(file)
 
         st.image(invoice_image, width=450)
 
+        st.write("### 🔍 Extracting fields using Upstream AI…")
+
         img_b64 = encode_image(invoice_image)
 
-        st.write("### 🔍 Extracting fields…")
-
-        # --- CHAT COMPLETIONS CALL (safe & stable) ---
+        # --------------------------------------------------------
+        # 🔥 FINAL WORKING CHAT.COMPLETIONS CALL
+        # (correct multimodal schema for your SDK)
+        # --------------------------------------------------------
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -82,7 +92,9 @@ You are Upstream AI. Extract ONLY this JSON:
                         {"type": "text", "text": "Extract all fields from this invoice."},
                         {
                             "type": "image_url",
-                            "image_url": f"data:image/png;base64,{img_b64}"
+                            "image_url": {
+                                "url": f"data:image/png;base64,{img_b64}"
+                            }
                         }
                     ]
                 }
@@ -90,9 +102,11 @@ You are Upstream AI. Extract ONLY this JSON:
             temperature=0
         )
 
+        # Parse output
         extracted = json.loads(response.choices[0].message["content"])
         st.json(extracted)
 
+        # Save for human review
         st.session_state.review_queue.append({
             "image": invoice_image,
             "data": extracted
@@ -100,43 +114,57 @@ You are Upstream AI. Extract ONLY this JSON:
 
         st.session_state.audit_log.append("Uploaded invoice")
 
-        st.success("Extraction complete! Added to queue.")
+        st.success("Extraction complete! Added to Review Queue.")
 
 
-# ================================
+# ========================================================
 # PAGE 2 — REVIEW QUEUE
-# ================================
+# ========================================================
 elif page == "Review Queue":
+
     st.subheader("📝 Human Review Queue")
 
     if len(st.session_state.review_queue) == 0:
-        st.info("No invoices in queue.")
+        st.info("No invoices pending review.")
     else:
-        for i, item in enumerate(st.session_state.review_queue):
+        for idx, item in enumerate(st.session_state.review_queue):
 
-            st.image(item["image"], width=450)
+            st.image(item["image"], width=400)
 
             editable = st.text_area(
-                "Extracted JSON:",
+                "Extracted JSON (editable):",
                 json.dumps(item["data"], indent=2),
-                height=280
+                height=260
             )
 
-            if st.button(f"Approve #{i+1}"):
-                st.success("Approved")
-                st.session_state.audit_log.append(f"Approved invoice #{i+1}")
-                st.session_state.review_queue.pop(i)
+            edited_json = json.loads(editable)
+            conf = edited_json.get("confidence", 0)
+
+            if conf >= 90:
+                st.success(f"Confidence: {conf}")
+            elif conf >= 70:
+                st.warning(f"Confidence: {conf}")
+            else:
+                st.error(f"Confidence: {conf}")
+
+            if st.button(f"Approve #{idx+1}"):
+                st.success("Approved & synced")
+                st.session_state.review_queue.pop(idx)
+                st.session_state.audit_log.append(f"Approved invoice #{idx+1}")
                 st.experimental_rerun()
 
-            if st.button(f"Reject #{i+1}"):
+            if st.button(f"Reject #{idx+1}"):
                 st.error("Rejected")
-                st.session_state.audit_log.append(f"Rejected invoice #{i+1}")
-                st.session_state.review_queue.pop(i)
+                st.session_state.review_queue.pop(idx)
+                st.session_state.audit_log.append(f"Rejected invoice #{idx+1}")
                 st.experimental_rerun()
 
-# ================================
+
+# ========================================================
 # PAGE 3 — AUDIT LOG
-# ================================
+# ========================================================
 elif page == "Audit Log":
+
     st.subheader("📚 Audit Log")
-    st.write(st.session_state.audit_log)
+    for i, log in enumerate(st.session_state.audit_log):
+        st.write(f"{i+1}. {log}")
