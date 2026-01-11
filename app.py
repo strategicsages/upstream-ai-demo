@@ -8,18 +8,12 @@ import io
 import base64
 import json
 
-# ----------------------------------------------------
-# Load API Key
-# ----------------------------------------------------
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="Upstream AI", layout="wide")
 st.title("⚡ Upstream AI — Scope 3 Invoice Extraction Agent")
 
-# ----------------------------------------------------
-# Convert uploaded PDF → Image
-# ----------------------------------------------------
 def pdf_to_image(file_bytes):
     images = convert_from_bytes(file_bytes)
     buf = io.BytesIO()
@@ -27,17 +21,11 @@ def pdf_to_image(file_bytes):
     buf.seek(0)
     return buf
 
-# ----------------------------------------------------
-# Encode image to base64 for OpenAI API
-# ----------------------------------------------------
 def encode_image(image):
     buf = io.BytesIO()
     image.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
-# ----------------------------------------------------
-# Sidebar navigation
-# ----------------------------------------------------
 st.sidebar.header("Navigation")
 page = st.sidebar.radio("Go to", ["Upload Invoice", "Review Queue", "Audit Log"])
 
@@ -47,10 +35,6 @@ if "review_queue" not in st.session_state:
 if "audit_log" not in st.session_state:
     st.session_state.audit_log = []
 
-
-# =====================================================
-# PAGE 1 — UPLOAD INVOICE
-# =====================================================
 if page == "Upload Invoice":
 
     st.subheader("📤 Upload Supplier Invoice")
@@ -64,59 +48,54 @@ if page == "Upload Invoice":
         else:
             invoice_image = Image.open(uploaded)
 
-        st.image(invoice_image, caption="Uploaded Invoice", width=500)
+        st.image(invoice_image, width=500)
 
         st.markdown("---")
-        st.write("### 🔍 Extracting data using GPT-4.1 Vision…")
+        st.write("### 🔍 Extracting data…")
 
-        # Convert to base64
         img_b64 = encode_image(invoice_image)
 
-        # ----------------------------------------------------
-        # NEW RESPONSES API CALL (Recommended)
-        # ----------------------------------------------------
+        # ---------------------------
+        # 💡 FIXED, VALID API CALL
+        # ---------------------------
         response = client.responses.create(
-            model="gpt-4.1",
+            model="gpt-4.1-mini",    # SAFE MODEL FOR STREAMLIT CLOUD
             input=[
                 {
                     "role": "system",
-                    "content": """
-You are Upstream AI, a compliance-grade extraction agent.
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": """
+You are Upstream AI. Return ONLY this JSON:
 
-Return ONLY this JSON:
 {
-  "energy_usage_kwh": number | null,
-  "billing_period": {
-    "start_date": string | null,
-    "end_date": string | null
-  },
-  "utility_provider": string | null,
-  "country": string | null,
-  "raw_text_snippet": string | null,
+  "energy_usage_kwh": number|null,
+  "billing_period": { "start_date": string|null, "end_date": string|null },
+  "utility_provider": string|null,
+  "country": string|null,
+  "raw_text_snippet": string|null,
   "confidence": number
 }
-If anything is unclear, return null. Never guess.
-                    """
+"""
+                        }
+                    ]
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Extract all required fields from this invoice."},
-                        {
-                            "type": "image",
-                            "image_url": f"data:image/png;base64,{img_b64}"
-                        }
+                        {"type": "input_text", "text": "Extract structured fields from this invoice."},
+                        {"type": "input_image", "image": img_b64}
                     ]
                 }
             ],
-            max_output_tokens=800
+            max_output_tokens=600
         )
 
         extracted = json.loads(response.output_text)
 
         st.json(extracted)
 
-        # Add to review queue
         st.session_state.review_queue.append({
             "image": invoice_image,
             "data": extracted
@@ -126,12 +105,8 @@ If anything is unclear, return null. Never guess.
             f"Uploaded invoice (confidence {extracted['confidence']})"
         )
 
-        st.success("Extracted successfully! Added to Review Queue.")
+        st.success("Extraction complete! Added to Review Queue.")
 
-
-# =====================================================
-# PAGE 2 — REVIEW QUEUE
-# =====================================================
 elif page == "Review Queue":
 
     st.subheader("📝 Human Review Queue")
@@ -140,6 +115,7 @@ elif page == "Review Queue":
         st.info("No invoices pending review.")
     else:
         for idx, item in enumerate(st.session_state.review_queue):
+
             st.markdown(f"## Invoice #{idx+1}")
 
             col1, col2 = st.columns(2)
@@ -158,40 +134,27 @@ elif page == "Review Queue":
                 confidence = edited_json.get("confidence", 0)
 
                 if confidence >= 90:
-                    st.success(f"Confidence: {confidence} (Auto-Approve Ready)")
+                    st.success("High confidence")
                 elif confidence >= 70:
-                    st.warning(f"Confidence: {confidence} (Needs Review)")
+                    st.warning("Needs Review")
                 else:
-                    st.error(f"Confidence: {confidence} (Low)")
+                    st.error("Low Confidence")
 
-                approve = st.button(f"Approve #{idx+1}")
-                flag = st.button(f"Flag #{idx+1}")
-                reject = st.button(f"Request Resubmission #{idx+1}")
-
-                if approve:
-                    st.success("Invoice Approved & Synced.")
-                    st.session_state.audit_log.append(f"Approved invoice #{idx+1}")
+                if st.button(f"Approve #{idx+1}"):
+                    st.success("Synced to ERP")
                     st.session_state.review_queue.pop(idx)
                     st.experimental_rerun()
 
-                if flag:
-                    st.warning("Flagged for further review.")
+                if st.button(f"Flag #{idx+1}"):
+                    st.warning("Flagged")
                     st.session_state.audit_log.append(f"Flagged invoice #{idx+1}")
 
-                if reject:
-                    st.error("Requested resubmission from supplier.")
-                    st.session_state.audit_log.append(f"Returned invoice #{idx+1}")
+                if st.button(f"Request Resubmission #{idx+1}"):
+                    st.error("Requested resubmission")
                     st.session_state.review_queue.pop(idx)
                     st.experimental_rerun()
 
-
-# =====================================================
-# PAGE 3 — AUDIT LOG
-# =====================================================
 elif page == "Audit Log":
     st.subheader("📚 Audit Log")
-    if len(st.session_state.audit_log) == 0:
-        st.info("No events yet.")
-    else:
-        for i, log in enumerate(st.session_state.audit_log):
-            st.write(f"{i+1}. {log}")
+    for i, log in enumerate(st.session_state.audit_log):
+        st.write(f"{i+1}. {log}")
