@@ -103,8 +103,11 @@ You are Upstream AI. Extract ONLY this JSON:
         )
 
         # Parse output
-        extracted = json.loads(response.choices[0].message["content"])
-        st.json(extracted)
+      # Parse output
+raw = response.choices[0].message.content
+extracted = json.loads(raw)
+st.json(extracted)
+
 
         # Save for human review
         st.session_state.review_queue.append({
