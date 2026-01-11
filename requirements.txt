@@ -1,5 +1,6 @@
-streamlit
-openai
+streamlit==1.40.0
+openai>=1.52.0
 pillow
 pdf2image
 python-dotenv
+requests
