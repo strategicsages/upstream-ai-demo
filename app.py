@@ -14,6 +14,8 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="Upstream AI", layout="wide")
 st.title("⚡ Upstream AI — Scope 3 Invoice Extraction Agent")
 
+
+# --- Helper Functions ----------------------------------------------------------
 def pdf_to_image(file_bytes):
     images = convert_from_bytes(file_bytes)
     buf = io.BytesIO()
@@ -22,27 +24,28 @@ def pdf_to_image(file_bytes):
     return buf
 
 def encode_image(image):
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
+
+# --- Sidebar Navigation --------------------------------------------------------
 st.sidebar.header("Navigation")
 page = st.sidebar.radio("Go to", ["Upload Invoice", "Review Queue", "Audit Log"])
 
 if "review_queue" not in st.session_state:
     st.session_state.review_queue = []
-
 if "audit_log" not in st.session_state:
     st.session_state.audit_log = []
 
-if page == "Upload Invoice":
 
+# --- PAGE 1: UPLOAD INVOICE ----------------------------------------------------
+if page == "Upload Invoice":
     st.subheader("📤 Upload Supplier Invoice")
     uploaded = st.file_uploader("Upload invoice", type=["png", "jpg", "jpeg", "pdf"])
 
     if uploaded:
 
-        # Convert PDF → image
         if uploaded.type == "application/pdf":
             invoice_image = Image.open(pdf_to_image(uploaded.read()))
         else:
@@ -55,45 +58,44 @@ if page == "Upload Invoice":
 
         img_b64 = encode_image(invoice_image)
 
-        # ---------------------------
-        # 💡 FIXED, VALID API CALL
-        # ---------------------------
+        # --- FIXED, VALIDATED OPENAI REQUEST ----------------------------------
         response = client.responses.create(
-            model="gpt-4.1-mini",    # SAFE MODEL FOR STREAMLIT CLOUD
+            model="gpt-4o-mini",
             input=[
                 {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": """
-You are Upstream AI. Return ONLY this JSON:
-
-{
-  "energy_usage_kwh": number|null,
-  "billing_period": { "start_date": string|null, "end_date": string|null },
-  "utility_provider": string|null,
-  "country": string|null,
-  "raw_text_snippet": string|null,
-  "confidence": number
-}
-"""
-                        }
-                    ]
-                },
-                {
+                    "type": "message",
                     "role": "user",
                     "content": [
-                        {"type": "input_text", "text": "Extract structured fields from this invoice."},
-                        {"type": "input_image", "image": img_b64}
-                    ]
+                        {
+                            "type": "text",
+                            "text": """
+Extract structured invoice data.
+
+Return ONLY this JSON:
+{
+  "energy_usage_kwh": number | null,
+  "billing_period": {
+    "start_date": string | null,
+    "end_date": string | null
+  },
+  "utility_provider": string | null,
+  "country": string | null,
+  "raw_text_snippet": string | null,
+  "confidence": number
+}
+If unsure, return null.
+""" },
+                        {
+                            "type": "input_image",
+                            "image": img_b64
+                        }
+                    ],
                 }
             ],
-            max_output_tokens=600
+            max_output_tokens=500
         )
 
         extracted = json.loads(response.output_text)
-
         st.json(extracted)
 
         st.session_state.review_queue.append({
@@ -107,9 +109,10 @@ You are Upstream AI. Return ONLY this JSON:
 
         st.success("Extraction complete! Added to Review Queue.")
 
-elif page == "Review Queue":
 
-    st.subheader("📝 Human Review Queue")
+# --- PAGE 2: REVIEW QUEUE -----------------------------------------------------
+elif page == "Review Queue":
+    st.subheader("📝 Review Queue")
 
     if len(st.session_state.review_queue) == 0:
         st.info("No invoices pending review.")
@@ -121,39 +124,36 @@ elif page == "Review Queue":
             col1, col2 = st.columns(2)
 
             with col1:
-                st.image(item["image"], width=400)
+                st.image(item["image"], width=420)
 
             with col2:
                 editable = st.text_area(
-                    "Extracted JSON (editable):",
-                    json.dumps(item["data"], indent=2),
-                    height=300
+                    "Extracted JSON:",
+                    json.dumps(item["data"], indent=2)
                 )
 
                 edited_json = json.loads(editable)
-                confidence = edited_json.get("confidence", 0)
+                conf = edited_json.get("confidence", 0)
 
-                if confidence >= 90:
-                    st.success("High confidence")
-                elif confidence >= 70:
-                    st.warning("Needs Review")
+                if conf >= 90:
+                    st.success(f"Confidence: {conf}")
+                elif conf >= 70:
+                    st.warning(f"Confidence: {conf}")
                 else:
-                    st.error("Low Confidence")
+                    st.error(f"Confidence: {conf}")
 
                 if st.button(f"Approve #{idx+1}"):
                     st.success("Synced to ERP")
                     st.session_state.review_queue.pop(idx)
                     st.experimental_rerun()
 
-                if st.button(f"Flag #{idx+1}"):
-                    st.warning("Flagged")
-                    st.session_state.audit_log.append(f"Flagged invoice #{idx+1}")
-
                 if st.button(f"Request Resubmission #{idx+1}"):
-                    st.error("Requested resubmission")
+                    st.error("Returned to supplier")
                     st.session_state.review_queue.pop(idx)
                     st.experimental_rerun()
 
+
+# --- PAGE 3: AUDIT LOG --------------------------------------------------------
 elif page == "Audit Log":
     st.subheader("📚 Audit Log")
     for i, log in enumerate(st.session_state.audit_log):
