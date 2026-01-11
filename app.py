@@ -102,12 +102,14 @@ You are Upstream AI. Extract ONLY this JSON:
             temperature=0
         )
 
-        # Parse output
-      # Parse output
-raw = response.choices[0].message.content
-extracted = json.loads(raw)
-st.json(extracted)
+               # --------------------------------------------------------
+        # Parse the model output
+        # --------------------------------------------------------
+        raw_content = response.choices[0].message.content
+        extracted = json.loads(raw_content)
 
+        st.write("### ✅ Extracted Data")
+        st.json(extracted)
 
         # Save for human review
         st.session_state.review_queue.append({
@@ -116,9 +118,7 @@ st.json(extracted)
         })
 
         st.session_state.audit_log.append("Uploaded invoice")
-
         st.success("Extraction complete! Added to Review Queue.")
-
 
 # ========================================================
 # PAGE 2 — REVIEW QUEUE
