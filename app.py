@@ -9,7 +9,8 @@ import base64
 import json
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 
 st.set_page_config(page_title="Upstream AI", layout="wide")
 st.title("⚡ Upstream AI — Invoice Extraction (Stable Version)")
