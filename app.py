@@ -15,8 +15,8 @@ with st.sidebar:
 
     st.page_link("1_Dashboard.py", label="📊 Dashboard")
     st.page_link("2_Upload_Invoice.py", label="📤 Upload Invoice")
-    st.page_link("4_Suppliers.py", label="🏭 Suppliers")
-    st.page_link("5_Supplier_Intelligence.py", label="🧠 Supplier Intelligence")
+    st.page_link("3_Suppliers.py", label="🏭 Suppliers")
+    st.page_link("4_Supplier_Intelligence.py", label="🧠 Supplier Intelligence")
 
     st.markdown("---")
     st.caption("Utilities")
@@ -25,7 +25,7 @@ with st.sidebar:
     st.page_link("Profile.py", label="👤 Profile")
     st.page_link("Audit_Logs.py", label="📜 Audit Logs")
 
-# ---------- MAIN LANDING ----------
+# ---------- LANDING ----------
 st.markdown(
     """
     ### 👋 Welcome to Upstream AI  
