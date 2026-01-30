@@ -78,7 +78,7 @@ df_invoices = st.session_state.dashboard_data["invoices"]
 # ---------------- HEADER ----------------
 c1, c2 = st.columns([3, 1])
 with c1:
-    st.title("📊 VeroFlow Command Center")
+    st.title("📊 Upstream AI Command Center")
     st.caption(f"System Status: ● Online | Last Sync: {datetime.now().strftime('%H:%M:%S')}")
 with c2:
     # Mock Date Filter
