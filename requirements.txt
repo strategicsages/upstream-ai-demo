@@ -1,5 +1,7 @@
 streamlit
 openai>=1.0.0
+pandas
 pillow
 pdf2image
 python-dotenv
+xlswriter
