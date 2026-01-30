@@ -135,6 +135,6 @@ else:
     st.subheader("🧭 Guided Onboarding")
     st.info(
         "**Step 1:** Navigate to **Upload Invoice** to ingest your first supplier document.\n\n"
-        "**Step 2:** The **AI Agent** will extract the data and map it to a supplier.\n\n"
-        "**Step 3:** View the **Dashboard** to see your Scope 3 impact."
+        "**Step 2:** The **Ingestion hub** will extract the data and map it to a supplier.\n\n"
+        "**Step 3:** View the **Dashboard** to see your Scope 3 supplychain submissions and performance."
     )
