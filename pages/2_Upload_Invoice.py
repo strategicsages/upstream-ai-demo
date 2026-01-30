@@ -78,7 +78,9 @@ def extract_invoice(file):
         }]
     )
 
-    return json.loads(response.output_text)
+    raw_text = response.output[0].content[0].text
+    return json.loads(raw_text)
+
 
 
 # ---------------- RUN EXTRACTION ----------------
