@@ -46,18 +46,21 @@ uploaded_files = st.file_uploader(
 )
 
 # ------------------ PREVIEW ------------------
-if uploaded_files:
-    st.subheader("🖼 Invoice Preview")
+with st.container():
+    col1, col2 = st.columns([1, 2])
 
-    preview_cols = st.columns(min(3, len(uploaded_files)))
+    with col1:
+        if uploaded_files:
+            st.subheader("Invoice Preview")
+            for file in uploaded_files[:1]:
+                if file.type.startswith("image"):
+                    st.image(file, width=220)
+                else:
+                    st.caption(file.name)
 
-    for i, file in enumerate(uploaded_files):
-        with preview_cols[i % len(preview_cols)]:
-            if file.type.startswith("image"):
-                image = Image.open(file)
-                st.image(image, caption=file.name, use_container_width=True)
-            else:
-                st.info(f"📄 {file.name} (PDF preview not shown)")
+    with col2:
+        st.subheader("Extraction Output")
+
 
 # ------------------ JSON EXTRACTOR ------------------
 def extract_json_safe(text):
