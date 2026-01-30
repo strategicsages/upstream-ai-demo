@@ -1,11 +1,13 @@
 
-if "suppliers_df" not in st.session_state:
-    st.session_state.suppliers_df = df.copy()
+
 
 import streamlit as st
 import pandas as pd
 import random
 
+if "suppliers_df" not in st.session_state:
+    st.session_state.suppliers_df = df.copy()
+    
 st.set_page_config(layout="wide")
 
 st.title("📊 Dashboard")
