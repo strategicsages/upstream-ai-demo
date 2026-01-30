@@ -1,156 +1,53 @@
 import streamlit as st
 import pandas as pd
 import random
-from datetime import datetime, timedelta
 
-# -------------------------------------------------
-# PAGE CONFIG
-# -------------------------------------------------
-st.set_page_config(
-    page_title="Upstream AI | Dashboard",
-    page_icon="🌍",
-    layout="wide"
-)
+st.set_page_config(layout="wide")
 
-# -------------------------------------------------
-# MOCK SUPPLIER NETWORK (MATCHES Suppliers.py LOGIC)
-# -------------------------------------------------
-def generate_supplier_network():
-    suppliers = [
-        ("Maersk Line", "Logistics", 90),
-        ("DHL Supply Chain", "Logistics", 88),
-        ("FedEx Logistics", "Logistics", 92),
-        ("Foxconn", "Electronics", 78),
-        ("TSMC", "Semiconductors", 95),
-        ("Samsung Electronics", "Components", 91),
-        ("BASF", "Chemicals", 86),
-        ("Dow Chemical", "Chemicals", 83),
-        ("Tata Steel", "Steel", 80),
-        ("ArcelorMittal", "Steel", 84),
-    ]
+st.title("📊 Dashboard")
 
-    rows = []
-    for name, category, base_conf in suppliers:
-        invoices = random.randint(5, 120)
-        confidence = max(5, min(99, base_conf + random.randint(-12, 8)))
+st.caption("Live operational view of supplier data ingestion and quality")
 
-        if confidence > 90:
-            status = "Verified"
-        elif confidence > 80:
-            status = "Check"
-        else:
-            status = "Review"
+# ---------------- MOCK METRICS (derived logic) ----------------
+TOTAL_SUPPLIERS = 60
+TOTAL_INVOICES = random.randint(1200, 2400)
+AVG_CONFIDENCE = random.randint(82, 91)
+AT_RISK = random.randint(6, 14)
 
-        rows.append({
-            "Supplier": name,
-            "Category": category,
-            "Invoices": invoices,
-            "AI Confidence": confidence,
-            "Status": status
-        })
-
-    return pd.DataFrame(rows)
-
-df = generate_supplier_network()
-
-# -------------------------------------------------
-# HEADER
-# -------------------------------------------------
-st.title("Upstream AI — Supplier Intelligence Dashboard")
-st.caption("Live operational view of supplier data quality, processing health, and risk signals")
-
-st.divider()
-
-# -------------------------------------------------
-# NETWORK HEALTH METRICS
-# -------------------------------------------------
 c1, c2, c3, c4 = st.columns(4)
-
-c1.metric(
-    "Suppliers Tracked",
-    len(df)
-)
-
-c2.metric(
-    "Invoices Processed",
-    f"{df['Invoices'].sum():,}"
-)
-
-c3.metric(
-    "Suppliers Requiring Review",
-    len(df[df["Status"] == "Review"])
-)
-
-c4.metric(
-    "Avg Network AI Confidence",
-    f"{int(df['AI Confidence'].mean())}%"
-)
+c1.metric("Suppliers Tracked", TOTAL_SUPPLIERS)
+c2.metric("Invoices Processed", TOTAL_INVOICES)
+c3.metric("Avg AI Confidence", f"{AVG_CONFIDENCE}%")
+c4.metric("Suppliers at Risk", AT_RISK)
 
 st.divider()
 
-# -------------------------------------------------
-# RISK & ATTENTION PANEL
-# -------------------------------------------------
-st.subheader("⚠️ Suppliers Needing Attention")
+# ---------------- RECENT ACTIVITY ----------------
+st.subheader("Recent Activity")
 
-risk_df = df[df["Status"] != "Verified"] \
-    .sort_values(by=["AI Confidence", "Invoices"], ascending=[True, False]) \
-    .head(5)
+activity = pd.DataFrame({
+    "Supplier": random.sample([
+        "Maersk Line", "Tata Steel", "Foxconn", "Li & Fung",
+        "BASF SE", "DHL Supply Chain", "Arvind Ltd"
+    ], 5),
+    "Document Type": ["Invoice", "Utility Bill", "Freight Doc", "Invoice", "Invoice"],
+    "AI Confidence": [92, 88, 74, 95, 81],
+    "Status": ["Verified", "Verified", "Review", "Verified", "Check"]
+})
 
-if risk_df.empty:
-    st.success("All suppliers are operating within acceptable confidence thresholds.")
-else:
-    st.dataframe(
-        risk_df[["Supplier", "Category", "Invoices", "AI Confidence", "Status"]],
-        use_container_width=True,
-        hide_index=True
-    )
+st.dataframe(activity, use_container_width=True, hide_index=True)
 
 st.divider()
 
-# -------------------------------------------------
-# RECENT SYSTEM ACTIVITY (SIMULATED AUDIT FEED)
-# -------------------------------------------------
-st.subheader("🧾 Recent System Activity")
+# ---------------- CTA ----------------
+st.subheader("Next Actions")
 
-activity = [
-    ("Invoice uploaded", "DHL Supply Chain"),
-    ("Manual review triggered", "Foxconn"),
-    ("Invoice processed successfully", "TSMC"),
-    ("Low confidence detected", "Tata Steel"),
-    ("Supplier score updated", "BASF"),
-]
+col1, col2 = st.columns(2)
 
-activity_rows = []
-for action, supplier in activity:
-    activity_rows.append({
-        "Time": (datetime.now() - timedelta(minutes=random.randint(2, 90))).strftime("%H:%M"),
-        "Event": action,
-        "Supplier": supplier
-    })
+with col1:
+    st.success("Upload new supplier documents to improve coverage.")
+    st.page_link("pages/2_Upload_Invoice.py", label="📤 Upload Invoice")
 
-activity_df = pd.DataFrame(activity_rows)
-
-st.dataframe(
-    activity_df,
-    use_container_width=True,
-    hide_index=True
-)
-
-st.divider()
-
-# -------------------------------------------------
-# GUIDED NEXT ACTIONS
-# -------------------------------------------------
-st.subheader("🚀 What would you like to do next?")
-
-a1, a2, a3 = st.columns(3)
-
-with a1:
-    st.button("📤 Upload New Invoice", use_container_width=True)
-
-with a2:
-    st.button("🏭 Review Suppliers", use_container_width=True)
-
-with a3:
-    st.button("📊 Open Supplier Intelligence", use_container_width=True)
+with col2:
+    st.warning("Review suppliers with low confidence scores.")
+    st.page_link("pages/5_Supplier_Intelligence.py", label="🧠 View Supplier Intelligence")
