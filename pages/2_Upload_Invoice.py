@@ -101,7 +101,7 @@ def extract_invoice_ai(file_bytes, mime_type):
     return json.loads(raw_text)
 
 # ---------------- UI HEADER ----------------
-st.title("📥 VeroFlow Ingestion Hub")
+st.title("📥 Upstream AI Ingestion Hub")
 st.markdown("""
 <style>
     .stDeployButton {display:none;}
