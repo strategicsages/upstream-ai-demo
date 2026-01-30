@@ -5,12 +5,8 @@ import pandas as pd
 if "suppliers_df" not in st.session_state:
     st.session_state.suppliers_df = None
 
-if "alerts" not in st.session_state:
-    st.session_state.alerts = []
-
-if "invoices" not in st.session_state:
-    st.session_state.invoices = []
-
+if "processed_data" not in st.session_state:
+    st.session_state.processed_data = []
 
 st.set_page_config(
     page_title="Upstream AI",
@@ -18,48 +14,127 @@ st.set_page_config(
     layout="wide"
 )
 
+# ------------------ SIDEBAR UTILITIES ------------------
+with st.sidebar:
+    st.header("🛠️ Utilities")
+    
+    # System Status
+    st.success("System Status: ● Online")
+    
+    st.markdown("---")
+    
+    # Quick Settings / Toggles
+    st.subheader("Preferences")
+    enable_notifications = st.checkbox("Enable Alerts", value=True)
+    auto_refresh = st.checkbox("Auto-refresh Dashboard", value=False)
+    
+    st.markdown("---")
+    
+    # Documentation / Help
+    st.markdown("### 📚 Resources")
+    st.markdown(
+        """
+        - [User Guide](https://streamlit.io)
+        - [Compliance Standards (GHG)](https://ghgprotocol.org)
+        - [Contact Support](mailto:support@upstream.ai)
+        """
+    )
+    
+    st.divider()
+    st.caption("Upstream AI v1.0.2")
+
 # ------------------ HEADER ------------------
-st.title("🌍 Upstream AI")
-st.caption("Scope 3 Intelligence Platform")
+col_logo, col_title = st.columns([1, 12])
 
-st.markdown(
-    """
-Upstream AI helps companies **ingest, validate, and operationalize**
-supplier-provided data for Scope 3 emissions reporting.
+with col_logo:
+    st.markdown("## 🌍") 
 
-This is your **control plane** for supplier data quality and intelligence.
-"""
-)
+with col_title:
+    st.title("Upstream AI")
+    st.caption("The Operating System for Scope 3 Decarbonization")
 
-st.divider()
+# ------------------ VALUE PROP (Hero Section) ------------------
+st.markdown("---")
 
-# ------------------ QUICK ACTIONS ------------------
-st.subheader("⚡ Quick Actions")
+c1, c2, c3 = st.columns(3)
 
-col1, col2, col3 = st.columns(3)
+with c1:
+    st.subheader("📥 Ingest")
+    st.info("**Universal Adapter**\n\nUpload messy PDFs, Excel, or images. We extract audit-ready data instantly.")
 
-with col1:
-    st.page_link("pages/1_Dashboard.py", label="📊 View Dashboard", use_container_width=True)
-    st.page_link("pages/2_Upload_Invoice.py", label="📤 Upload Supplier Document", use_container_width=True)
+with c2:
+    st.subheader("🧠 Intelligence")
+    st.warning("**Risk Engine**\n\nAuto-detect anomalies, validate against benchmarks, and score supplier maturity.")
 
-with col2:
-    st.page_link("pages/3_Suppliers.py", label="🏭 Manage Suppliers", use_container_width=True)
-    st.page_link("pages/4_Supplier_Intelligence.py", label="🧠 Supplier Intelligence", use_container_width=True)
+with c3:
+    st.subheader("📈 Impact")
+    st.success("**Decarbonize**\n\nTrack tCO2e reductions and automate regulatory reporting (SB 253/CSRD).")
 
-with col3:
-    st.button("👤 Profile", disabled=True)
-    st.button("⚙️ Settings", disabled=True)
-    st.button("🧾 Audit Logs", disabled=True)
+st.markdown("---")
 
-st.caption("Profile, Settings, and Audit Logs are coming soon.")
+# ------------------ DYNAMIC DASHBOARD / QUICK ACTIONS ------------------
 
-st.divider()
+# Check if we have data to show a summary
+has_data = st.session_state.suppliers_df is not None or len(st.session_state.processed_data) > 0
 
-# ------------------ GUIDED NEXT STEP ------------------
-st.subheader("🧭 Suggested Next Step")
+if has_data:
+    st.subheader("⚡ Quick Actions")
+else:
+    st.subheader("🚀 Get Started")
 
-st.info(
-    "Start by uploading a **supplier invoice or document** to see how Upstream AI "
-    "extracts structured, audit-ready data in real time.",
-    icon="👉"
-)
+# Action Grid using Containers for "Card" look
+ac1, ac2, ac3, ac4 = st.columns(4)
+
+with ac1:
+    with st.container(border=True):
+        st.markdown("#### 📤 Upload")
+        st.caption("Process new invoices")
+        st.page_link("pages/2_Upload_Invoice.py", label="Go to Upload", icon="📄", use_container_width=True)
+
+with ac2:
+    with st.container(border=True):
+        st.markdown("#### 📊 Insights")
+        st.caption("View network health")
+        st.page_link("pages/1_Dashboard.py", label="Open Dashboard", icon="📈", use_container_width=True)
+
+with ac3:
+    with st.container(border=True):
+        st.markdown("#### 🏭 Network")
+        st.caption("Manage Suppliers")
+        st.page_link("pages/3_Suppliers.py", label="View Suppliers", icon="🏢", use_container_width=True)
+
+with ac4:
+    with st.container(border=True):
+        st.markdown("#### 🧠 Agent")
+        st.caption("Run Intelligence")
+        st.page_link("pages/4_Supplier_Intelligence.py", label="Run Analysis", icon="🤖", use_container_width=True)
+
+# ------------------ RECENT ACTIVITY / NEXT STEPS ------------------
+st.markdown("###") # Spacer
+
+if has_data:
+    st.subheader("🕒 Recent Activity")
+    # Show mini feed based on session state data
+    if len(st.session_state.processed_data) > 0:
+        latest = st.session_state.processed_data[-1]
+        mapped_name = latest.get('mapped_supplier', 'Unknown Supplier')
+        conf = latest.get('confidence_score', 0)
+        st.info(f"🆕 **Processed Invoice:** {mapped_name} (Confidence: {conf}%)")
+        
+        if len(st.session_state.processed_data) > 1:
+            prev = st.session_state.processed_data[-2]
+            prev_name = prev.get('mapped_supplier', 'Unknown Supplier')
+            st.caption(f"Previously: {prev_name}")
+            
+    elif st.session_state.suppliers_df is not None:
+        count = len(st.session_state.suppliers_df)
+        st.info(f"✅ **Network Status:** {count} suppliers actively tracked.")
+    else:
+        st.info("System initialized. Ready for data.")
+else:
+    st.subheader("🧭 Guided Onboarding")
+    st.info(
+        "**Step 1:** Navigate to **Upload Invoice** to ingest your first supplier document.\n\n"
+        "**Step 2:** The **AI Agent** will extract the data and map it to a supplier.\n\n"
+        "**Step 3:** View the **Dashboard** to see your Scope 3 impact."
+    )
