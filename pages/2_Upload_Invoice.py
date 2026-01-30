@@ -46,28 +46,57 @@ if uploaded_file:
             st.info("PDF uploaded (preview skipped)")
 
 # ---------------- EXTRACTION FUNCTION ----------------
+import base64
+import json
+from openai import OpenAI
+
+client = OpenAI()
+
 def extract_invoice(file):
     encoded = base64.b64encode(file.read()).decode("utf-8")
 
     response = client.responses.create(
         model="gpt-4o-mini",
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": "invoice_extraction",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "energy_usage_kwh": {"type": ["number", "null"]},
+                        "billing_period": {
+                            "type": "object",
+                            "properties": {
+                                "start_date": {"type": ["string", "null"]},
+                                "end_date": {"type": ["string", "null"]}
+                            },
+                            "required": ["start_date", "end_date"]
+                        },
+                        "utility_provider": {"type": ["string", "null"]},
+                        "country": {"type": ["string", "null"]},
+                        "raw_text_snippet": {"type": ["string", "null"]},
+                        "confidence": {"type": "number"}
+                    },
+                    "required": [
+                        "energy_usage_kwh",
+                        "billing_period",
+                        "utility_provider",
+                        "country",
+                        "raw_text_snippet",
+                        "confidence"
+                    ]
+                }
+            }
+        },
         input=[{
             "role": "user",
             "content": [
                 {
                     "type": "input_text",
                     "text": (
-                        "You are a compliance-grade Scope 3 extraction agent.\n"
-                        "Extract ONLY values clearly visible in the invoice.\n"
-                        "Return STRICT JSON only.\n"
-                        "Return null if unclear.\n\n"
-                        "{"
-                        "\"energy_usage_kwh\": number | null,"
-                        "\"billing_period\": {\"start_date\": string | null, \"end_date\": string | null},"
-                        "\"utility_provider\": string | null,"
-                        "\"country\": string | null,"
-                        "\"confidence\": number"
-                        "}"
+                        "Extract ONLY values clearly visible in the invoice image. "
+                        "Return null for anything unclear. Do NOT guess."
                     )
                 },
                 {
@@ -78,10 +107,8 @@ def extract_invoice(file):
         }]
     )
 
-    raw_text = response.output[0].content[0].text
-    return json.loads(raw_text)
-
-
+    # ✅ Guaranteed JSON
+    return response.output_parsed
 
 # ---------------- RUN EXTRACTION ----------------
 if uploaded_file and st.button("Run AI Extraction"):
