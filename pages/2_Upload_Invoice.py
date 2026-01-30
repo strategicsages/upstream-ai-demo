@@ -72,13 +72,14 @@ def extract_invoice(file):
                 },
                 {
                     "type": "input_image",
-                    "image_base64": encoded
+                    "image_url": f"data:image/png;base64,{encoded}"
                 }
             ]
         }]
     )
 
     return json.loads(response.output_text)
+
 
 # ---------------- RUN EXTRACTION ----------------
 if uploaded_file and st.button("Run AI Extraction"):
