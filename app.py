@@ -1,4 +1,16 @@
 import streamlit as st
+import pandas as pd
+
+# ---- GLOBAL SESSION STATE ----
+if "suppliers_df" not in st.session_state:
+    st.session_state.suppliers_df = None
+
+if "alerts" not in st.session_state:
+    st.session_state.alerts = []
+
+if "invoices" not in st.session_state:
+    st.session_state.invoices = []
+
 
 st.set_page_config(
     page_title="Upstream AI",
