@@ -47,7 +47,7 @@ if uploaded_file:
 
 # ---------------- EXTRACTION FUNCTION ----------------
 
-   import base64
+import base64
 import json
 import re
 
