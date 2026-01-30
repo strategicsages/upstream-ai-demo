@@ -8,9 +8,8 @@ st.set_page_config(page_title="VeroFlow: Supplier Network", page_icon="🏭", la
 st.title("🏭 Supplier Network Scope 3 Data")
 st.markdown("Real-time visibility into supplier invoice processing and data confidence.")
 
+# --- 1. DATA GENERATION (Moved to top) ---
 # List of 60 Real-world Suppliers (Logistics, Manufacturing, Raw Materials, Services)
-# These represent typical Scope 3 Categories: 
-# Cat 1 (Purchased Goods), Cat 4 (Upstream Transport), Cat 9 (Downstream Transport)
 suppliers_data = [
     # Logistics & Shipping (Cat 4/9)
     ("Maersk Line", "Denmark", "Logistics"),
@@ -104,9 +103,6 @@ for supplier, country, category in suppliers_data:
         invoices = random.randint(2, 25)
         confidence_base = 85
 
-    # Randomize Confidence and Reliability
-    # Logic: Reliability tracks how often they reply. Confidence tracks how clean their data is.
-    
     # Simulate variations
     avg_confidence = min(99, max(60, confidence_base + random.randint(-10, 8)))
     reliability_score = random.randint(70, 99)
@@ -124,7 +120,7 @@ for supplier, country, category in suppliers_data:
         "Category": category,
         "Country": country,
         "Invoices Processed": invoices,
-        "Avg. AI Confidence": f"{avg_confidence}%",
+        "Avg. AI Confidence": avg_confidence, # Keep as int for math
         "Data Reliability": reliability_score,
         "Status": status
     })
@@ -132,15 +128,56 @@ for supplier, country, category in suppliers_data:
 # Create DataFrame
 df = pd.DataFrame(table_rows)
 
-# Display Interactive Table
-# st.dataframe allows sorting and scrolling, which is better for 60 rows
+# --- 2. METRICS DISPLAY (Moved Up) ---
+st.divider()
+c1, c2, c3 = st.columns(3)
+c1.metric("Total Suppliers Tracked", len(df))
+c2.metric("Total Invoices Processed", df["Invoices Processed"].sum())
+c3.metric("Avg Network Reliability", f"{int(df['Data Reliability'].mean())}/100")
+st.divider()
+
+# --- 3. PAGINATION LOGIC ---
+if "page_number" not in st.session_state:
+    st.session_state.page_number = 0
+
+rows_per_page = 12
+last_page = (len(df) - 1) // rows_per_page
+
+# Calculate start and end indices for the current page
+start_idx = st.session_state.page_number * rows_per_page
+end_idx = start_idx + rows_per_page
+
+# Display Pagination Controls
+col_prev, col_info, col_next = st.columns([1, 2, 1])
+
+def next_page():
+    if st.session_state.page_number < last_page:
+        st.session_state.page_number += 1
+
+def prev_page():
+    if st.session_state.page_number > 0:
+        st.session_state.page_number -= 1
+
+with col_prev:
+    st.button("Previous", on_click=prev_page, disabled=(st.session_state.page_number == 0))
+
+with col_next:
+    st.button("Next", on_click=next_page, disabled=(st.session_state.page_number == last_page))
+
+with col_info:
+    st.markdown(f"**Page {st.session_state.page_number + 1} of {last_page + 1}**")
+
+# Slice the dataframe based on pagination
+paginated_df = df.iloc[start_idx:end_idx]
+
+# --- 4. TABLE DISPLAY ---
 st.dataframe(
-    df,
+    paginated_df,
     column_config={
         "Avg. AI Confidence": st.column_config.ProgressColumn(
             "AI Confidence",
             help="Average confidence of AI extraction",
-            format="%s",
+            format="%d%%", # Add % formatting here
             min_value=0,
             max_value=100,
         ),
@@ -153,9 +190,3 @@ st.dataframe(
     hide_index=True,
     use_container_width=True
 )
-
-# Metric Summary
-c1, c2, c3 = st.columns(3)
-c1.metric("Total Suppliers Tracked", len(df))
-c2.metric("Total Invoices Processed", df["Invoices Processed"].sum())
-c3.metric("Avg Network Reliability", f"{int(df['Data Reliability'].mean())}/100")
