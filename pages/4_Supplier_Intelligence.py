@@ -11,7 +11,7 @@ st.set_page_config(page_title="Upstream AI - Supplier Intelligence", page_icon="
 # Ensure you have .streamlit/secrets.toml set up with OPENAI_API_KEY
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-st.title("🧠 VeroFlow Supplier Intelligence")
+st.title("🧠 Upstream AI - Supplier Intelligence")
 st.markdown("### Agentic Risk Assessment & Automated Enablement")
 
 # ---------------- SAFE JSON EXTRACTOR ----------------
