@@ -3,15 +3,15 @@ import pandas as pd
 import random
 
 # Set page config for a wider layout
-st.set_page_config(page_title="VeroFlow: Supplier Network", page_icon="🏭", layout="wide")
+st.set_page_config(page_title="Upstream AI", page_icon="🌍", layout="wide")
 
 st.title("🏭 Supplier Network Scope 3 Data")
 st.markdown("Real-time visibility into supplier invoice processing and data confidence.")
 
-# --- 1. DATA GENERATION (Moved to top) ---
-# List of 60 Real-world Suppliers (Logistics, Manufacturing, Raw Materials, Services)
+# --- 1. DATA GENERATION ---
+# List of 60 Real-world Suppliers
 suppliers_data = [
-    # Logistics & Shipping (Cat 4/9)
+    # Logistics & Shipping
     ("Maersk Line", "Denmark", "Logistics"),
     ("DHL Supply Chain", "Germany", "Logistics"),
     ("FedEx Logistics", "USA", "Logistics"),
@@ -28,7 +28,7 @@ suppliers_data = [
     ("COSCO Shipping", "China", "Logistics"),
     ("Evergreen Marine", "Taiwan", "Logistics"),
 
-    # Electronics & Components (Cat 1)
+    # Electronics & Components
     ("Foxconn Technology Group", "Taiwan", "Electronics"),
     ("Flex Ltd", "Singapore", "Electronics"),
     ("Jabil Inc", "USA", "Electronics"),
@@ -40,7 +40,7 @@ suppliers_data = [
     ("Micron Technology", "USA", "Semiconductors"),
     ("Intel Corp", "USA", "Semiconductors"),
 
-    # Chemicals & Raw Materials (Cat 1)
+    # Chemicals & Raw Materials
     ("BASF SE", "Germany", "Chemicals"),
     ("Dow Chemical", "USA", "Chemicals"),
     ("Sinopec", "China", "Chemicals"),
@@ -52,14 +52,14 @@ suppliers_data = [
     ("Glencore", "Switzerland", "Commodities"),
     ("Cargill", "USA", "Agriculture"),
 
-    # Steel & Metals (Cat 1)
+    # Steel & Metals
     ("Tata Steel", "India", "Steel"),
     ("ArcelorMittal", "Luxembourg", "Steel"),
     ("Nippon Steel", "Japan", "Steel"),
     ("POSCO", "South Korea", "Steel"),
     ("Baowu Group", "China", "Steel"),
 
-    # Packaging (Cat 1)
+    # Packaging
     ("Amcor", "Australia", "Packaging"),
     ("Ball Corporation", "USA", "Packaging"),
     ("Smurfit Kappa", "Ireland", "Packaging"),
@@ -67,7 +67,7 @@ suppliers_data = [
     ("International Paper", "USA", "Packaging"),
     ("Avery Dennison", "USA", "Packaging"),
 
-    # Textiles & Apparel (Cat 1)
+    # Textiles & Apparel
     ("Li & Fung", "Hong Kong", "Textiles"),
     ("Shenzhou International", "China", "Textiles"),
     ("Arvind Ltd", "India", "Textiles"),
@@ -76,7 +76,7 @@ suppliers_data = [
     ("Pou Chen Corp", "Taiwan", "Footwear"),
     ("Gildan Activewear", "Canada", "Apparel"),
 
-    # IT & Business Services (Cat 1 - Purchased Services)
+    # IT & Business Services
     ("Infosys", "India", "IT Services"),
     ("TCS", "India", "IT Services"),
     ("Accenture", "Ireland", "Consulting"),
@@ -85,50 +85,50 @@ suppliers_data = [
     ("Capgemini", "France", "Consulting")
 ]
 
-# Generate realistic mock data for the table
+# Generate realistic mock data
 table_rows = []
 
-# Seed for reproducibility if needed, though random varies the demo nicely
-# random.seed(42) 
-
 for supplier, country, category in suppliers_data:
-    # Randomize invoice counts based on category (Logistics usually has high volume)
     if category == "Logistics":
         invoices = random.randint(15, 120)
-        confidence_base = 90 # Standardized forms usually
+        confidence_base = 90 
     elif category == "Textiles":
         invoices = random.randint(5, 40)
-        confidence_base = 75 # Messier invoices
+        confidence_base = 65 # Lower base to trigger red/yellow more often
     else:
         invoices = random.randint(2, 25)
         confidence_base = 85
 
-    # Simulate variations
-    avg_confidence = min(99, max(60, confidence_base + random.randint(-10, 8)))
+    # Simulate wider variations to show off the color logic (0-100 range)
+    # Using a wider random spread
+    variation = random.randint(-30, 10)
+    avg_confidence = min(99, max(5, confidence_base + variation))
+    
     reliability_score = random.randint(70, 99)
     
-    # Formatting status
+    # Status Logic
     if avg_confidence > 90:
-        status = "✅ High"
-    elif avg_confidence > 75:
-        status = "⚠️ Medium"
+        status = "✅ Verified"
+    elif avg_confidence > 80:
+        status = "⚠️ Check"
+    elif avg_confidence > 10:
+        status = "⚠️ Review"
     else:
-        status = "❌ Review Needed"
+        status = "❌ Failed"
 
     table_rows.append({
         "Supplier Name": supplier,
         "Category": category,
         "Country": country,
         "Invoices Processed": invoices,
-        "Avg. AI Confidence": avg_confidence, # Keep as int for math
+        "Avg. AI Confidence": avg_confidence,
         "Data Reliability": reliability_score,
         "Status": status
     })
 
-# Create DataFrame
 df = pd.DataFrame(table_rows)
 
-# --- 2. METRICS DISPLAY (Moved Up) ---
+# --- 2. METRICS ---
 st.divider()
 c1, c2, c3 = st.columns(3)
 c1.metric("Total Suppliers Tracked", len(df))
@@ -136,18 +136,16 @@ c2.metric("Total Invoices Processed", df["Invoices Processed"].sum())
 c3.metric("Avg Network Reliability", f"{int(df['Data Reliability'].mean())}/100")
 st.divider()
 
-# --- 3. PAGINATION LOGIC ---
+# --- 3. PAGINATION ---
 if "page_number" not in st.session_state:
     st.session_state.page_number = 0
 
 rows_per_page = 12
 last_page = (len(df) - 1) // rows_per_page
 
-# Calculate start and end indices for the current page
 start_idx = st.session_state.page_number * rows_per_page
 end_idx = start_idx + rows_per_page
 
-# Display Pagination Controls
 col_prev, col_info, col_next = st.columns([1, 2, 1])
 
 def next_page():
@@ -167,19 +165,36 @@ with col_next:
 with col_info:
     st.markdown(f"**Page {st.session_state.page_number + 1} of {last_page + 1}**")
 
-# Slice the dataframe based on pagination
+# Get current page data
 paginated_df = df.iloc[start_idx:end_idx]
 
-# --- 4. TABLE DISPLAY ---
+# --- 4. CONDITIONAL FORMATTING FUNCTION ---
+def color_confidence(val):
+    """
+    Green > 90
+    Light Green 80-90
+    Light/White 10-80
+    Red Hues < 10
+    """
+    if val > 90:
+        return 'background-color: #d1e7dd; color: #0f5132' # Bootstrap Success Green
+    elif val > 80:
+        return 'background-color: #fff3cd; color: #664d03' # Using Yellowish/Light Green tone
+    elif val > 10:
+        return 'background-color: white; color: black'     # Neutral
+    else:
+        return 'background-color: #f8d7da; color: #842029' # Bootstrap Danger Red
+
+# Apply styling to the specific column
+styled_df = paginated_df.style.map(color_confidence, subset=["Avg. AI Confidence"])
+
+# --- 5. TABLE DISPLAY ---
 st.dataframe(
-    paginated_df,
+    styled_df,
     column_config={
-        "Avg. AI Confidence": st.column_config.ProgressColumn(
-            "AI Confidence",
-            help="Average confidence of AI extraction",
-            format="%d%%", # Add % formatting here
-            min_value=0,
-            max_value=100,
+        "Avg. AI Confidence": st.column_config.NumberColumn(
+            "AI Confidence (%)",
+            format="%d%%"
         ),
         "Data Reliability": st.column_config.NumberColumn(
             "Reliability Score",
