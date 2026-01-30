@@ -1,101 +1,110 @@
 import streamlit as st
-import pandas as pd
 import json
-import base64
-import os
+import re
 from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+st.set_page_config(page_title="Upload Invoice", layout="wide")
 
 st.title("📤 Upload Invoice")
-st.caption("Messy invoices → structured Scope 3 data")
+st.markdown("Messy invoices → structured Scope 3 data")
 
-# ---- DEMO COMPANIES ----
-company = st.selectbox("Receiving Company (Data Consumer)", ["Nike", "Unilever", "Apple"])
+# ------------------ CONFIG ------------------
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# ---- SUPPLIERS ----
-if st.session_state.suppliers_df is None:
-    st.session_state.suppliers_df = pd.DataFrame(columns=[
-        "Supplier Name", "Category", "Country",
-        "Invoices Processed", "Avg. AI Confidence",
-        "Data Reliability", "Status"
-    ])
+# ------------------ LOAD SUPPLIERS ------------------
+df = st.session_state.get("suppliers_df")
 
-df = st.session_state.suppliers_df
-supplier_declared = st.selectbox(
-    "Declared Supplier",
-    options=list(df["Supplier Name"]) + ["➕ Add new supplier"]
+if df is None or df.empty:
+    st.error("No suppliers found. Add suppliers first.")
+    st.stop()
+
+# ------------------ FORM ------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    receiving_company = st.selectbox(
+        "Receiving Company (Data Consumer)",
+        ["Nike", "Apple", "Unilever", "Tesla"]
+    )
+
+with col2:
+    supplier = st.selectbox(
+        "Supplier",
+        sorted(df["Supplier Name"].unique())
+    )
+
+uploaded = st.file_uploader(
+    "Upload invoice (PNG, JPG, PDF)",
+    type=["png", "jpg", "jpeg", "pdf"]
 )
 
-# ---- FILE UPLOAD ----
-file = st.file_uploader("Upload invoice (PNG, JPG, PDF)", type=["png", "jpg", "jpeg", "pdf"])
+# ------------------ EXTRACTOR ------------------
+def safe_extract_json(text):
+    """
+    Extracts JSON even if model adds text around it.
+    """
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return None
+    return json.loads(match.group())
 
-if st.button("Run AI Invoice Extraction") and file:
-    with st.spinner("Extracting invoice data..."):
+# ------------------ RUN EXTRACTION ------------------
+if uploaded and st.button("Run AI Invoice Extraction"):
 
-        img_bytes = file.read()
-        img_b64 = base64.b64encode(img_bytes).decode()
+    with st.spinner("Extracting invoice data with AI…"):
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": """Extract ONLY valid JSON:
-{
- "energy_usage_kwh": number|null,
- "billing_period": {"start_date": string|null, "end_date": string|null},
- "utility_provider": string|null,
- "country": string|null,
- "confidence": number
-}"""
+                    "content": (
+                        "You extract structured invoice data. "
+                        "Return ONLY valid JSON."
+                    )
                 },
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Extract Scope 3 invoice data."},
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}}
-                    ]
+                    "content": (
+                        "Extract energy or logistics invoice data. "
+                        "Return JSON with keys:\n"
+                        "energy_usage_kwh (number)\n"
+                        "billing_period {start_date, end_date}\n"
+                        "utility_provider (string)\n"
+                        "country (string)\n"
+                        "confidence (0-1 float)"
+                    )
                 }
-            ],
-            temperature=0
+            ]
         )
 
-        extracted = json.loads(response.choices[0].message.content)
-        st.success("Invoice extracted successfully")
-        st.json(extracted)
+        raw_text = response.choices[0].message.content
 
-        # ---- AUTO SUPPLIER CREATION ----
-        if supplier_declared == "➕ Add new supplier":
-            supplier_name = extracted.get("utility_provider", "Unknown Supplier")
-            new_row = {
-                "Supplier Name": supplier_name,
-                "Category": "Auto-detected",
-                "Country": extracted.get("country"),
-                "Invoices Processed": 1,
-                "Avg. AI Confidence": int(extracted["confidence"] * 100),
-                "Data Reliability": int(extracted["confidence"] * 100),
-                "Status": "⚠️ Review"
-            }
-            st.session_state.suppliers_df = pd.concat(
-                [df, pd.DataFrame([new_row])], ignore_index=True
-            )
-            final_supplier = supplier_name
-        else:
-            final_supplier = supplier_declared
-            idx = df[df["Supplier Name"] == final_supplier].index[0]
-            df.at[idx, "Invoices Processed"] += 1
-            df.at[idx, "Avg. AI Confidence"] = int(extracted["confidence"] * 100)
+        try:
+            extracted = safe_extract_json(raw_text)
+        except Exception as e:
+            st.error("AI returned invalid JSON")
+            st.code(raw_text)
+            st.stop()
 
-        # ---- CONFIDENCE ROUTING ----
-        if extracted["confidence"] < 0.8:
-            alert = f"Low confidence invoice from {final_supplier} ({int(extracted['confidence']*100)}%)"
-            st.session_state.alerts.append(alert)
-            st.warning("Routed to Supplier Intelligence Agent")
+    # ------------------ SUCCESS ------------------
+    st.success("Invoice extracted successfully")
+    st.json(extracted)
 
-        # ---- SAVE INVOICE ----
-        st.session_state.invoices.append({
-            "company": company,
-            "supplier": final_supplier,
-            "data": extracted
-        })
+    # ------------------ UPDATE SUPPLIER ------------------
+    idx = df[df["Supplier Name"] == supplier].index[0]
+
+    df.at[idx, "Invoices Processed"] += 1
+    df.at[idx, "Avg. AI Confidence"] = int(extracted["confidence"] * 100)
+
+    df.at[idx, "Status"] = (
+        "✅ Verified"
+        if extracted["confidence"] > 0.85
+        else "⚠️ Review"
+    )
+
+    st.session_state.suppliers_df = df
+
+    st.info(
+        f"Supplier **{supplier}** updated for **{receiving_company}**"
+    )
