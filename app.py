@@ -6,31 +6,31 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- SIDEBAR BRANDING ---
+# ---------- SIDEBAR ----------
 with st.sidebar:
-    st.markdown("### 🌍 Upstream AI")
-    st.caption("Agentic Scope 3 Intelligence Platform")
-    st.divider()
+    st.markdown("## 🌍 Upstream AI")
+    st.caption("Scope 3 Intelligence Platform")
 
-    # Spacer to push utilities to bottom
-    st.markdown(
-        """
-        <div style="flex:1; height: 65vh;"></div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("---")
 
-    st.divider()
-    st.markdown("### ⚙️ Utilities")
+    st.page_link("pages/1_Dashboard.py", label="📊 Dashboard")
+    st.page_link("pages/2_Upload_Invoice.py", label="📤 Upload Invoice")
+    st.page_link("pages/4_Suppliers.py", label="🏭 Suppliers")
+    st.page_link("pages/5_Supplier_Intelligence.py", label="🧠 Supplier Intelligence")
 
-    st.button("👤 Profile", use_container_width=True)
-    st.button("⚙️ Settings", use_container_width=True)
-    st.button("📜 Audit Logs", use_container_width=True)
+    st.markdown("---")
+    st.caption("Utilities")
 
-# --- MAIN LANDING CONTENT ---
-st.title("Welcome to Upstream AI")
-st.caption(
-    "Transform messy supplier documents into trusted, audit-ready Scope 3 intelligence."
+    st.page_link("pages/Settings.py", label="⚙️ Settings")
+    st.page_link("pages/Profile.py", label="👤 Profile")
+    st.page_link("pages/Audit_Logs.py", label="📜 Audit Logs")
+
+# ---------- MAIN ----------
+st.markdown(
+    """
+    ### 👋 Welcome to Upstream AI
+    Your command center for supplier data ingestion, validation, and Scope 3 intelligence.
+    
+    👉 Start with **Dashboard** to see live supplier health.
+    """
 )
-
-st.info("Use the sidebar to navigate through the platform.")
