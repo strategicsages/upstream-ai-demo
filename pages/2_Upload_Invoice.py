@@ -1,5 +1,6 @@
 import streamlit as st
-
+if "suppliers_df" not in st.session_state:
+    st.session_state.suppliers_df = df.copy()
 st.title("📤 Upload Invoice")
 
 uploaded_file = st.file_uploader(
