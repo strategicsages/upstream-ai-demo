@@ -1,31 +1,41 @@
 import streamlit as st
 import random
 
-st.title("📤 Upload Supplier Invoice")
-st.caption("Messy documents → structured data")
+st.title("📤 Upload Invoice")
 
-supplier = st.selectbox(
-    "Select Supplier",
-    st.session_state.suppliers_df["Supplier Name"]
+df = st.session_state.suppliers_df
+
+company = st.selectbox(
+    "Receiving Company",
+    ["Nike","Apple","Unilever","Custom"]
 )
 
-uploaded = st.file_uploader("Upload invoice", type=["png", "jpg", "pdf"])
+supplier = st.selectbox("Supplier", df["Supplier Name"])
 
-if uploaded:
-    st.image(uploaded, caption="Uploaded Document", width=250)
+file = st.file_uploader("Upload invoice", ["png","jpg","pdf"])
 
+if file:
     if st.button("Run AI Extraction"):
-        confidence = random.randint(60, 95)
-
-        df = st.session_state.suppliers_df
+        confidence = random.randint(60,95)
         df.loc[df["Supplier Name"] == supplier, "Invoices Processed"] += 1
-        df.loc[df["Supplier Name"] == supplier, "Avg. AI Confidence"] = int(
-            (df.loc[df["Supplier Name"] == supplier, "Avg. AI Confidence"] + confidence) / 2
-        )
+        df.loc[df["Supplier Name"] == supplier, "Avg. AI Confidence"] = confidence
 
-        st.success("Invoice processed and supplier updated")
+        st.success("Invoice processed")
         st.json({
             "supplier": supplier,
             "confidence": confidence,
-            "status": "added to supplier record"
+            "company": company
         })
+
+st.divider()
+
+with st.expander("➕ Add New Supplier"):
+    name = st.text_input("Supplier Name")
+    category = st.selectbox("Category", ["Logistics","Textiles","Electronics","Steel"])
+    country = st.text_input("Country")
+
+    if st.button("Add Supplier"):
+        st.session_state.suppliers_df.loc[len(df)] = [
+            name, category, country, 0, 0, 0
+        ]
+        st.success("Supplier added")
