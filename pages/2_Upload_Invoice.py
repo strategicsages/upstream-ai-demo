@@ -4,6 +4,7 @@ import json
 import re
 from openai import OpenAI
 from io import BytesIO
+from PIL import Image
 
 # ------------------ CONFIG ------------------
 st.set_page_config(page_title="Upload Invoice", layout="wide")
@@ -21,6 +22,9 @@ if "supplier_registry" not in st.session_state:
 
 if "extracted_rows" not in st.session_state:
     st.session_state.extracted_rows = []
+
+if "raw_json_outputs" not in st.session_state:
+    st.session_state.raw_json_outputs = []
 
 # ------------------ ADD SUPPLIER (TOP RIGHT) ------------------
 with st.sidebar:
@@ -41,6 +45,20 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True
 )
 
+# ------------------ PREVIEW ------------------
+if uploaded_files:
+    st.subheader("🖼 Invoice Preview")
+
+    preview_cols = st.columns(min(3, len(uploaded_files)))
+
+    for i, file in enumerate(uploaded_files):
+        with preview_cols[i % len(preview_cols)]:
+            if file.type.startswith("image"):
+                image = Image.open(file)
+                st.image(image, caption=file.name, use_container_width=True)
+            else:
+                st.info(f"📄 {file.name} (PDF preview not shown)")
+
 # ------------------ JSON EXTRACTOR ------------------
 def extract_json_safe(text):
     match = re.search(r"\{.*\}", text, re.DOTALL)
@@ -52,6 +70,7 @@ def extract_json_safe(text):
 if uploaded_files and st.button("Run AI Extraction"):
 
     st.session_state.extracted_rows = []
+    st.session_state.raw_json_outputs = []
 
     for file in uploaded_files:
         with st.spinner(f"Processing {file.name}..."):
@@ -90,6 +109,11 @@ if uploaded_files and st.button("Run AI Extraction"):
                 st.code(raw)
                 continue
 
+            st.session_state.raw_json_outputs.append({
+                "file": file.name,
+                "json": data
+            })
+
             supplier = st.session_state.supplier_registry.get(
                 data["utility_provider"],
                 "NEW SUPPLIER (AUTO-CREATED)"
@@ -113,17 +137,31 @@ if uploaded_files and st.button("Run AI Extraction"):
 # ------------------ RESULTS ------------------
 if st.session_state.extracted_rows:
 
-    df = pd.DataFrame(st.session_state.extracted_rows)
+    st.subheader("📄 Extracted Output")
 
-    st.subheader("📄 Extracted Data")
-    st.dataframe(df, use_container_width=True)
+    view_mode = st.radio(
+        "View format",
+        ["📊 Table View", "🧾 Raw JSON View"],
+        horizontal=True
+    )
 
-    # JSON EXPORT
+    if view_mode == "📊 Table View":
+        df = pd.DataFrame(st.session_state.extracted_rows)
+        st.dataframe(df, use_container_width=True)
+
+    else:
+        for item in st.session_state.raw_json_outputs:
+            st.markdown(f"**{item['file']}**")
+            st.json(item["json"])
+
+    # ------------------ EXPORT ------------------
     st.subheader("📦 Export")
+
+    df = pd.DataFrame(st.session_state.extracted_rows)
 
     st.download_button(
         "⬇️ Download JSON",
-        data=json.dumps(st.session_state.extracted_rows, indent=2),
+        data=json.dumps(st.session_state.raw_json_outputs, indent=2),
         file_name="scope3_output.json"
     )
 
