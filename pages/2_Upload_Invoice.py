@@ -1,36 +1,31 @@
 import streamlit as st
-if "suppliers_df" not in st.session_state:
-    st.session_state.suppliers_df = df.copy()
-st.title("📤 Upload Invoice")
+import random
 
-uploaded_file = st.file_uploader(
-    "Upload supplier invoice (PDF or Image)",
-    type=["pdf", "png", "jpg", "jpeg"]
+st.title("📤 Upload Supplier Invoice")
+st.caption("Messy documents → structured data")
+
+supplier = st.selectbox(
+    "Select Supplier",
+    st.session_state.suppliers_df["Supplier Name"]
 )
 
-if uploaded_file:
-    st.success("Invoice uploaded successfully")
+uploaded = st.file_uploader("Upload invoice", type=["png", "jpg", "pdf"])
 
-    st.subheader("🧠 Agent Workflow Status")
-    st.markdown("""
-    ✔ Extraction Agent  
-    ✔ Validation Agent  
-    ✔ Intelligence Agent  
-    ⏳ Enablement Agent (planned)
-    """)
+if uploaded:
+    st.image(uploaded, caption="Uploaded Document", width=250)
 
-    st.subheader("Extracted Output (JSON)")
-    st.code("""
-{
-  "energy_usage_kwh": 1312,
-  "billing_period": {
-    "start_date": "2024-01-15",
-    "end_date": "2024-02-15"
-  },
-  "utility_provider": "Bright Energy",
-  "confidence": 90
-}
-""", language="json")
+    if st.button("Run AI Extraction"):
+        confidence = random.randint(60, 95)
 
-    st.button("Add to Review Queue")
-    st.button("Add to Supplier Record")
+        df = st.session_state.suppliers_df
+        df.loc[df["Supplier Name"] == supplier, "Invoices Processed"] += 1
+        df.loc[df["Supplier Name"] == supplier, "Avg. AI Confidence"] = int(
+            (df.loc[df["Supplier Name"] == supplier, "Avg. AI Confidence"] + confidence) / 2
+        )
+
+        st.success("Invoice processed and supplier updated")
+        st.json({
+            "supplier": supplier,
+            "confidence": confidence,
+            "status": "added to supplier record"
+        })
