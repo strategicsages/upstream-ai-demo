@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import random
 import time
-
+if "suppliers_df" not in st.session_state:
+    st.session_state.suppliers_df = df.copy()
 # ---------------- PAGE SETUP ----------------
 st.set_page_config(page_title="Supplier Intelligence", layout="wide")
 
