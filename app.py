@@ -21,9 +21,10 @@ with st.sidebar:
     st.markdown("---")
     st.caption("Utilities")
 
-    st.page_link("Settings.py", label="⚙️ Settings")
-    st.page_link("Profile.py", label="👤 Profile")
-    st.page_link("Audit_Logs.py", label="📜 Audit Logs")
+    # OPTIONAL: only keep these if the files exist
+    # st.page_link("pages/Settings.py", label="⚙️ Settings")
+    # st.page_link("pages/Profile.py", label="👤 Profile")
+    # st.page_link("pages/Audit_Logs.py", label="📜 Audit Logs")
 
 # ---------- LANDING ----------
 st.markdown(
