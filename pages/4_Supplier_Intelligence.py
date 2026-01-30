@@ -5,7 +5,7 @@ import random
 from openai import OpenAI
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="VeroFlow: Supplier Intelligence", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Upstream AI - Supplier Intelligence", page_icon="🧠", layout="wide")
 
 # Get API Key from Streamlit Secrets
 # Ensure you have .streamlit/secrets.toml set up with OPENAI_API_KEY
