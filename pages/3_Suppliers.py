@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import random
-
+if "suppliers_df" not in st.session_state:
+    st.session_state.suppliers_df = df.copy()
 # Set page config for a wider layout
 st.set_page_config(page_title="Upstream AI", page_icon="🌍", layout="wide")
 
