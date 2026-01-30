@@ -1,7 +1,6 @@
-streamlit
-openai>=1.0.0
-pandas
-pillow
-pdf2image
-python-dotenv
-xlswriter
+streamlit>=1.32.0
+openai>=1.12.0
+pandas>=2.0.0
+pillow>=10.0.0
+python-dotenv>=1.0.0
+xlsxwriter>=3.1.0
