@@ -1,48 +1,102 @@
 import streamlit as st
 import pandas as pd
+import random
 import time
-import json
-def supplier_enablement_agent_mock(supplier):
+
+# ---------------- PAGE SETUP ----------------
+st.set_page_config(page_title="Supplier Intelligence", layout="wide")
+
+st.title("🧠 Supplier Intelligence")
+st.caption("Agent-driven supplier enablement and data quality improvement")
+
+st.divider()
+
+# ---------------- SUPPLIER DATA ----------------
+suppliers_data = [
+    ("Arvind Ltd", "India", "Textiles"),
+    ("Li & Fung", "Hong Kong", "Textiles"),
+    ("Tata Steel", "India", "Steel"),
+    ("Maersk Line", "Denmark", "Logistics"),
+    ("Foxconn", "Taiwan", "Electronics"),
+    ("BASF SE", "Germany", "Chemicals"),
+]
+
+rows = []
+for name, country, category in suppliers_data:
+    confidence = random.randint(55, 95)
+    invoices = random.randint(5, 60)
+
+    rows.append({
+        "Supplier Name": name,
+        "Country": country,
+        "Category": category,
+        "Invoices Processed": invoices,
+        "Avg. AI Confidence": confidence
+    })
+
+df = pd.DataFrame(rows)
+
+# ---------------- AGENT LOGIC ----------------
+def supplier_enablement_agent(supplier):
     confidence = supplier["Avg. AI Confidence"]
-    invoices = supplier["Invoices Processed"]
-    category = supplier["Category"]
 
     if confidence < 70:
         return {
-            "supplier_maturity": "Low",
-            "recommended_path": "Hybrid: AI + Human",
-            "diagnosis": "Supplier submits inconsistent, low-quality data. Likely low tooling maturity.",
-            "ai_actions": [
-                "Auto-generated invoice template",
-                "Mobile photo → structured data pipeline",
-                "Confidence feedback loop per invoice"
+            "Supplier Maturity": "Low",
+            "Recommended Path": "Hybrid (AI + Human)",
+            "Diagnosis": "Low-quality submissions and inconsistent formats",
+            "AI Actions": [
+                "Invoice templates",
+                "Mobile-friendly submission guide"
             ],
-            "human_actions": [
-                "Supplier onboarding call",
-                "Training on data submission best practices"
+            "Human Actions": [
+                "Onboarding call",
+                "Data readiness training"
             ],
-            "expected_uplift": "+15–20% confidence"
+            "Expected Confidence Uplift": "+15–20%"
         }
 
     elif confidence < 85:
         return {
-            "supplier_maturity": "Medium",
-            "recommended_path": "AI-led enablement",
-            "diagnosis": "Supplier is partially structured but inconsistent across invoices.",
-            "ai_actions": [
-                "Automated validation checks",
-                "AI-generated submission guidance"
+            "Supplier Maturity": "Medium",
+            "Recommended Path": "AI-led Enablement",
+            "Diagnosis": "Partially structured but inconsistent",
+            "AI Actions": [
+                "Automated validation tips",
+                "Confidence feedback loop"
             ],
-            "human_actions": [],
-            "expected_uplift": "+8–12% confidence"
+            "Human Actions": [],
+            "Expected Confidence Uplift": "+8–12%"
         }
 
     else:
         return {
-            "supplier_maturity": "High",
-            "recommended_path": "Monitor only",
-            "diagnosis": "Supplier data is reliable and consistent.",
-            "ai_actions": ["No action required"],
-            "human_actions": [],
-            "expected_uplift": "+2–3% confidence"
+            "Supplier Maturity": "High",
+            "Recommended Path": "Monitor Only",
+            "Diagnosis": "Reliable and consistent data",
+            "AI Actions": ["No action required"],
+            "Human Actions": [],
+            "Expected Confidence Uplift": "+2–3%"
         }
+
+# ---------------- UI ----------------
+st.subheader("Supplier Network Overview")
+st.dataframe(df, use_container_width=True, hide_index=True)
+
+st.divider()
+st.subheader("🧠 Run Supplier Enablement Agent")
+
+selected_supplier = st.selectbox(
+    "Select a supplier",
+    df["Supplier Name"]
+)
+
+if st.button("Run Enablement Agent"):
+    supplier_row = df[df["Supplier Name"] == selected_supplier].iloc[0]
+
+    with st.spinner("Agent reasoning about supplier capability..."):
+        time.sleep(1.5)
+        result = supplier_enablement_agent(supplier_row)
+
+    st.success("Agent recommendation ready")
+    st.json(result)
