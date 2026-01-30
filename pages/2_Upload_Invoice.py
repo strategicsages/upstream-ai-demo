@@ -3,6 +3,29 @@ import pandas as pd
 import json
 import re
 from openai import OpenAI
+client = OpenAI()
+
+response = client.responses.create(
+    model="gpt-4o-mini",
+    input=[
+        {
+            "role": "system",
+            "content": """You are Upstream AI, a document-grounded extraction agent for Scope 3 emissions reporting.
+
+You must extract values ONLY if they are explicitly visible in the document.
+Do NOT guess, estimate, infer, or fabricate.
+Return null for unclear or missing values.
+Return valid JSON only."""
+        },
+        {
+            "role": "user",
+            "content": "Extract all required fields from the attached invoice. Return JSON only."
+        }
+    ]
+)
+
+output_text = response.output_text
+
 from io import BytesIO
 from PIL import Image
 
