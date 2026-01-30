@@ -6,27 +6,48 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---- LANDING PAGE ONLY ----
+# ------------------ HEADER ------------------
 st.title("🌍 Upstream AI")
 st.caption("Scope 3 Intelligence Platform")
 
 st.markdown(
     """
-### 👋 Welcome
+Upstream AI helps companies **ingest, validate, and operationalize**
+supplier-provided data for Scope 3 emissions reporting.
 
-Upstream AI is your **command center** for supplier data ingestion, validation,
-and Scope 3 emissions intelligence.
-
-**What you can do here:**
-- 📤 Convert messy supplier invoices into structured JSON
-- 🏭 Track supplier data quality & reliability
-- 🧠 Generate audit-ready intelligence for ESG & ERP systems
-
-👉 Use the **left navigation** to explore the platform.
+This is your **control plane** for supplier data quality and intelligence.
 """
 )
 
+st.divider()
+
+# ------------------ QUICK ACTIONS ------------------
+st.subheader("⚡ Quick Actions")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.page_link("pages/1_Dashboard.py", label="📊 View Dashboard", use_container_width=True)
+    st.page_link("pages/2_Upload_Invoice.py", label="📤 Upload Supplier Document", use_container_width=True)
+
+with col2:
+    st.page_link("pages/3_Suppliers.py", label="🏭 Manage Suppliers", use_container_width=True)
+    st.page_link("pages/4_Supplier_Intelligence.py", label="🧠 Supplier Intelligence", use_container_width=True)
+
+with col3:
+    st.button("👤 Profile", disabled=True)
+    st.button("⚙️ Settings", disabled=True)
+    st.button("🧾 Audit Logs", disabled=True)
+
+st.caption("Profile, Settings, and Audit Logs are coming soon.")
+
+st.divider()
+
+# ------------------ GUIDED NEXT STEP ------------------
+st.subheader("🧭 Suggested Next Step")
+
 st.info(
-    "Start with **Dashboard** to view live supplier health and data confidence.",
-    icon="📊"
+    "Start by uploading a **supplier invoice or document** to see how Upstream AI "
+    "extracts structured, audit-ready data in real time.",
+    icon="👉"
 )
