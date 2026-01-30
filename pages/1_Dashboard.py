@@ -1,32 +1,17 @@
 import streamlit as st
-import pandas as pd
 
-st.set_page_config(layout="wide")
-
-st.title("📊 Supplier Intelligence Dashboard")
+st.title("📊 Dashboard")
 
 df = st.session_state.get("suppliers_df")
 
 if df is None:
-    st.info("Upload invoices to start populating supplier intelligence.")
+    st.info("No supplier data yet.")
     st.stop()
 
-# ---- ALERTS ----
-st.subheader("🚨 Live Alerts")
-if st.session_state.alerts:
-    for alert in st.session_state.alerts[-3:]:
-        st.error(alert)
+st.subheader("⚠️ Low Confidence Suppliers")
+low = df[df["Avg. AI Confidence"] < 75]
+
+if low.empty:
+    st.success("All suppliers healthy")
 else:
-    st.success("No critical supplier issues detected")
-
-# ---- METRICS ----
-c1, c2, c3 = st.columns(3)
-c1.metric("Suppliers Tracked", len(df))
-c2.metric("Invoices Processed", int(df["Invoices Processed"].sum()))
-c3.metric("Avg AI Confidence", f"{int(df['Avg. AI Confidence'].mean())}%")
-
-st.divider()
-
-# ---- TABLE ----
-st.subheader("Supplier Health Overview")
-st.dataframe(df, use_container_width=True)
+    st.dataframe(low[["Supplier Name", "Avg. AI Confidence", "Status"]])
