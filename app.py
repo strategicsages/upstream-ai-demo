@@ -13,10 +13,10 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.page_link("1_Dashboard.py", label="📊 Dashboard")
-    st.page_link("2_Upload_Invoice.py", label="📤 Upload Invoice")
-    st.page_link("3_Suppliers.py", label="🏭 Suppliers")
-    st.page_link("4_Supplier_Intelligence.py", label="🧠 Supplier Intelligence")
+    st.page_link("pages/1_Dashboard.py", label="📊 Dashboard")
+    st.page_link("pages/2_Upload_Invoice.py", label="📤 Upload Invoice")
+    st.page_link("pages/3_Suppliers.py", label="🏭 Suppliers")
+    st.page_link("pages/4_Supplier_Intelligence.py", label="🧠 Supplier Intelligence")
 
     st.markdown("---")
     st.caption("Utilities")
