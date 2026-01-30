@@ -46,69 +46,65 @@ if uploaded_file:
             st.info("PDF uploaded (preview skipped)")
 
 # ---------------- EXTRACTION FUNCTION ----------------
-import base64
-import json
-from openai import OpenAI
 
-client = OpenAI()
+   import base64
+import json
+import re
 
 def extract_invoice(file):
     encoded = base64.b64encode(file.read()).decode("utf-8")
 
-    response = client.responses.create(
+    response = client.chat.completions.create(
         model="gpt-4o-mini",
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": "invoice_extraction",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "energy_usage_kwh": {"type": ["number", "null"]},
-                        "billing_period": {
-                            "type": "object",
-                            "properties": {
-                                "start_date": {"type": ["string", "null"]},
-                                "end_date": {"type": ["string", "null"]}
-                            },
-                            "required": ["start_date", "end_date"]
-                        },
-                        "utility_provider": {"type": ["string", "null"]},
-                        "country": {"type": ["string", "null"]},
-                        "raw_text_snippet": {"type": ["string", "null"]},
-                        "confidence": {"type": "number"}
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a compliance-grade extraction agent. "
+                    "Extract ONLY values clearly visible in the invoice. "
+                    "Return STRICT JSON only. "
+                    "Return null if unclear. "
+                    "Do NOT add any commentary."
+                )
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Extract invoice data in this JSON format:\n"
+                            "{"
+                            "\"energy_usage_kwh\": number | null,"
+                            "\"billing_period\": {\"start_date\": string | null, \"end_date\": string | null},"
+                            "\"utility_provider\": string | null,"
+                            "\"country\": string | null,"
+                            "\"raw_text_snippet\": string | null,"
+                            "\"confidence\": number"
+                            "}"
+                        )
                     },
-                    "required": [
-                        "energy_usage_kwh",
-                        "billing_period",
-                        "utility_provider",
-                        "country",
-                        "raw_text_snippet",
-                        "confidence"
-                    ]
-                }
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{encoded}"
+                        }
+                    }
+                ]
             }
-        },
-        input=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": (
-                        "Extract ONLY values clearly visible in the invoice image. "
-                        "Return null for anything unclear. Do NOT guess."
-                    )
-                },
-                {
-                    "type": "input_image",
-                    "image_url": f"data:image/png;base64,{encoded}"
-                }
-            ]
-        }]
+        ],
+        temperature=0
     )
 
-    # ✅ Guaranteed JSON
-    return response.output_parsed
+    raw = response.choices[0].message.content
+
+    # Defensive JSON extraction (important)
+    match = re.search(r"\{.*\}", raw, re.DOTALL)
+    if not match:
+        raise ValueError("No JSON returned by model")
+
+    return json.loads(match.group())
+
 
 # ---------------- RUN EXTRACTION ----------------
 if uploaded_file and st.button("Run AI Extraction"):
